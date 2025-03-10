@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wpływ zmiany procentowej na zmiane ceny w czasie</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            font-weight: bold;
+            margin-top: 20px;
+            display: block;
+        }
+        input {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin: 10px 0 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        img {
+            max-width: 100%;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kalkulator Zmian Cen</h1>
+
+        <!-- Sekcja kalkulacji -->
+        <label for="days">Podaj liczbę dni:</label>
+        <input type="number" id="days" min="1" placeholder="Np. 5">
+        <button id="calculate-btn">Oblicz średnią zmianę</button>
+        <p id="error-message" class="error"></p>
+
+        <table id="results-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Stopa procentowa</th>
+                    <th>Średnia zmiana ceny (%)</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <!-- Sekcja wykresu korelacji -->
+        <button id="plot-btn">Pokaż Wykres Korelacji</button>
+        <img id="plot-image" alt="Wykres Korelacji">
+
+    </div>
+
+    <script>
+        // Funkcja do obliczania zmian cen
+        document.getElementById('calculate-btn').addEventListener('click', async () => {
+            const daysInput = document.getElementById('days');
+            const errorMessage = document.getElementById('error-message');
+            const resultsTable = document.getElementById('results-table');
+            const resultsBody = resultsTable.querySelector('tbody');
+
+            errorMessage.textContent = '';
+            resultsTable.style.display = 'none';
+            resultsBody.innerHTML = '';
+
+            const days = parseInt(daysInput.value);
+            if (!days || days < 1) {
+                errorMessage.textContent = 'Proszę podać prawidłową, dodatnią liczbę dni.';
+                return;
+            }
+
+            try {
+                const response = await fetch('/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ days })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    errorMessage.textContent = errorData.error || 'Wystąpił błąd podczas obliczeń.';
+                    return;
+                }
+
+                const data = await response.json();
+                const results = data.data;
+
+                results.forEach(result => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${result.rate}</td><td>${result.avg_change.toFixed(3)}</td>`;
+                    resultsBody.appendChild(row);
+                });
+
+                resultsTable.style.display = 'table';
+            } catch (error) {
+                errorMessage.textContent = 'Nie można połączyć się z serwerem. Spróbuj ponownie później.';
+                console.error('Błąd:', error);
+            }
+        });
+
+        // Funkcja do wyświetlania wykresu korelacji
+        document.getElementById('plot-btn').addEventListener('click', async () => {
+            const plotImage = document.getElementById('plot-image');
+            try {
+                const response = await fetch('/plot', { method: 'GET' });
+                if (!response.ok) throw new Error('Nie udało się załadować wykresu.');
+
+                const data = await response.json();
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    plotImage.src = `data:image/png;base64,${data.image}`;
+                    plotImage.style.display = 'block';
+                }
+            } catch (error) {
+                alert('Wystąpił błąd: ' + error.message);
+                console.error(error);
+            }
+        });
+
+    </script>
+<div class="container">
+    <button id="plot-close-btn">Pokaż Wykres Zmiany Ceny Zamknięcia</button>
+    <button id="plot-histogram-btn">Pokaż Histogram Zmian Cen</button>
+    <div id="new-plot-container" style="margin-top: 20px;">
+        <img id="new-plot-image" style="max-width: 100%; display: none;" alt="Wykres">
+    </div>
+</div>
+
+<script>
+    const plotNewImage = async (endpoint) => {
+        const plotImage = document.getElementById('new-plot-image');
+        try {
+            const response = await fetch(endpoint, { method: 'GET' });
+
+            if (!response.ok) {
+                throw new Error('Nie udało się załadować wykresu.');
+            }
+
+            const data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+            } else {
+                plotImage.src = `data:image/png;base64,${data.image}`;
+                plotImage.style.display = 'block';
+            }
+        } catch (error) {
+            alert('Wystąpił błąd: ' + error.message);
+            console.error(error);
+        }
+    };
+
+    document.getElementById('plot-close-btn').addEventListener('click', () => {
+        plotNewImage('/plot_close_prices');
+    });
+
+    document.getElementById('plot-histogram-btn').addEventListener('click', () => {
+        plotNewImage('/plot_histogram');
+    });
+</script>
+<div class="container">
+    <h2>Wykres Zmienności z Zakresem Dat</h2>
+    <label for="start-date">Początkowa data (YYYY-MM-DD):</label>
+    <input type="date" id="start-date">
+    <label for="end-date">Końcowa data (YYYY-MM-DD):</label>
+    <input type="date" id="end-date">
+    <label for="volatility-days">Podaj liczbę dni do obliczenia zmienności:</label>
+    <input type="number" id="volatility-days" min="1" placeholder="Np. 5">
+    <button id="generate-volatility-range-btn">Generuj Wykres Zmienności</button>
+    <div id="volatility-range-plot-container" style="margin-top: 20px;">
+        <img id="volatility-range-plot-image" style="max-width: 100%; display: none;" alt="Wykres Zmienności">
+    </div>
+</div>
+
+<script>
+    document.getElementById('generate-volatility-range-btn').addEventListener('click', async () => {
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
+        const daysInput = document.getElementById('volatility-days');
+        const plotImage = document.getElementById('volatility-range-plot-image');
+        plotImage.style.display = 'none';
+
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+        const days = parseInt(daysInput.value);
+
+        if (!startDate || !endDate || !days || days < 1) {
+            alert('Proszę podać prawidłowe dane: daty i dodatnią liczbę dni.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/plot_volatility', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start_date: startDate, end_date: endDate, days })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                alert(errorData.error || 'Wystąpił błąd podczas generowania wykresu.');
+                return;
+            }
+
+            const data = await response.json();
+            if (data.error) {
+                alert(data.error);
+            } else {
+                plotImage.src = `data:image/png;base64,${data.image}`;
+                plotImage.style.display = 'block';
+            }
+        } catch (error) {
+            alert('Wystąpił błąd: ' + error.message);
+            console.error(error);
+        }
+    });
+</script>
+
+
+</body>
+</html>
