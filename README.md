@@ -1,4 +1,4 @@
-# Kalkulator Zmian Cen i Wykresy SMA
+# Kalkulator Zmian Cen i Wskaźniki 
 
 Aplikacja umożliwia obliczanie średnich zmian cen na podstawie procentowych zmian stóp procentowych (DFF) oraz generowanie wykresów, w tym wykresów SMA (Simple Moving Average). Użytkownicy mogą obliczyć średnią zmianę ceny na podstawie danych oraz generować wykresy takich danych jak korelacja, zmiana ceny zamknięcia czy zmienność cen w czasie.
 
