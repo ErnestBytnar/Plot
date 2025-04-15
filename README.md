@@ -24,13 +24,9 @@ Aby uruchomić aplikację, wymagane są następujące komponenty:
 
 2. **Zainstaluj wymagane biblioteki:**
 
-    Jeśli masz zainstalowany `pip` (Python package manager), zainstaluj wszystkie zależności:
+    
 
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-    Jeśli nie masz pliku `requirements.txt`, zainstaluj wymagane biblioteki ręcznie:
+    Zainstaluj wymagane biblioteki:
 
     ```bash
     pip install flask matplotlib pandas numpy
