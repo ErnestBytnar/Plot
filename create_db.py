@@ -1,12 +1,8 @@
-
-
 import sqlite3
-
-
 import utils
 
 def create_db(dane2):
-    con = sqlite3.connect("dane2.db")
+    con = sqlite3.connect("db/dane2.db")
     cur = con.cursor()
 
     cur.execute("""
@@ -22,7 +18,7 @@ def create_db(dane2):
     con.close()
 
 def create_db_from_api():
-    con = sqlite3.connect("dane.db")
+    con = sqlite3.connect("db/dane.db")
     cur = con.cursor()
     data2 = utils.fetch_data()
     dni = data2["Time Series (Daily)"]
@@ -43,15 +39,15 @@ def create_db_from_api():
 
 
 def split_db(db1_path, db2_path, output_db_path):
-    # Połączenie z nową bazą danych na wynik
+
     output_con = sqlite3.connect(output_db_path)
     output_cur = output_con.cursor()
 
-    # Podłączenie dwóch baz za pomocą ATTACH
+
     output_cur.execute(f"ATTACH DATABASE '{db1_path}' AS db1;")
     output_cur.execute(f"ATTACH DATABASE '{db2_path}' AS db2;")
 
-    # Tworzenie tabeli wynikowej
+
     output_cur.execute("""
         CREATE TABLE IF NOT EXISTS merged_data (
             dane TEXT,
@@ -61,7 +57,7 @@ def split_db(db1_path, db2_path, output_db_path):
         );
     """)
 
-    # Wspólny join na kolumnie 'dane' (data)
+
     merged_query = """
         INSERT INTO merged_data (dane, cena_otwarcia, cena_zamkniecia, DFF)
         SELECT db1.dane.dane, db1.dane.cena_otwarcia, db1.dane.cena_zamkniecia, db2.dane2.DFF
@@ -70,9 +66,9 @@ def split_db(db1_path, db2_path, output_db_path):
         ON db1.dane.dane = db2.dane2.dane;
     """
 
-    # Wykonanie zapytania SQL
+
     output_cur.execute(merged_query)
 
-    # Zatwierdzanie zmian i zamknięcie połączeń
+
     output_con.commit()
     output_con.close()

@@ -5,12 +5,13 @@ from datetime import datetime
 import io
 import base64
 import numpy as np
+import pandas as pd
 
 matplotlib.use('Agg')
 def korelacja_miedzy_SPX_a_stopami_bezrobocia():
     try:
 
-        db = sqlite3.connect('merged_data.db')
+        db = sqlite3.connect('db/merged_data.db')
         cursor = db.cursor()
 
 
@@ -55,53 +56,62 @@ def korelacja_miedzy_SPX_a_stopami_bezrobocia():
     except Exception as e:
         return str(e)
 
+
 def srednia_zmiana_ceny_przy_zmianie_DFF(dni):
-    db = sqlite3.connect('merged_data.db')
+
+
+
+
+    db = sqlite3.connect('db/merged_data.db')
     cursor = db.cursor()
 
-    cursor.execute('''SELECT dane,cena_zamkniecia,DFF FROM merged_data''')
+
+    cursor.execute('''SELECT dane, cena_zamkniecia, DFF FROM merged_data ORDER BY dane''')
     dane = cursor.fetchall()
     cursor.close()
     db.close()
 
-    stopa_procentowa = None
-    zmiany_proc_od_99 =[]
+    zmiany_cen = []
 
-    for i,row in enumerate(dane):
+    for i in range(1, len(dane) - dni):
+        data_poprzednia = dane[i - 1]
+        data_biezaca = dane[i]
 
-        aktualna_stopa = row[2]
+        dff_poprzedni = data_poprzednia[2]
+        dff_biezacy = data_biezaca[2]
 
-        if stopa_procentowa is not None:
-            roznica_dff = float(aktualna_stopa) - float(stopa_procentowa)
 
-            if roznica_dff != 0:
+        if dff_biezacy != dff_poprzedni:
+            roznica_stopy = round(dff_biezacy - dff_poprzedni, 3)
+            cena_poczatkowa = data_biezaca[1]
+            cena_docelowa = dane[i + dni][1]
 
-                if(stopa_procentowa !=aktualna_stopa):
-                    if i+dni <len(dane):
-                        cena_7dni = dane[i+dni][1]
-                        aktualna_cena = row[1]
-                        zamiana_proc = round(((cena_7dni-aktualna_cena)/aktualna_cena)*100,3)
-                        zmiany_proc_od_99.append((zamiana_proc,roznica_dff))
-                        #print(i, zamiana_proc,row[2],row[1],roznica_dff)
-        stopa_procentowa =aktualna_stopa
+            zmiana_procentowa = ((cena_docelowa - cena_poczatkowa) / cena_poczatkowa) * 100
 
-    zmiany_dict = {}
+            zmiany_cen.append((roznica_stopy, zmiana_procentowa))
 
-    for i in zmiany_proc_od_99:
-        zmiana = i[1]
-        cena = i[0]
-        if zmiana in zmiany_dict:
-            zmiany_dict[zmiana].append(cena)
-        else:
-            zmiany_dict[zmiana] = [cena]
 
-    for zmiana, ceny in zmiany_dict.items():
-        srednia = sum(ceny) / len(ceny)
-        print(f"Średnia zmiana ceny z {dni} dni dla obiżki stopy procentowej {round(zmiana,4)}: wynosi {round(srednia,3)}%")
+    grupy = {}
+    for roznica, zmiana in zmiany_cen:
+        if roznica not in grupy:
+            grupy[roznica] = []
+        grupy[roznica].append(zmiana)
+
+
+    wyniki = []
+    for roznica, zmiany in grupy.items():
+        srednia = sum(zmiany) / len(zmiany)
+        wyniki.append({
+            'roznica_stopy': roznica,
+            'srednia_zmiana_ceny': round(srednia, 3)
+        })
+
+    return wyniki
+
 
 def zmiana_ceny_w_czasie():
     try:
-        db = sqlite3.connect('merged_data.db')
+        db = sqlite3.connect('db/merged_data.db')
         cursor = db.cursor()
 
         cursor.execute('SELECT dane, cena_zamkniecia FROM merged_data')
@@ -137,7 +147,7 @@ def zmiana_ceny_w_czasie():
 
 def histogram_zmian_cen():
     try:
-        db = sqlite3.connect('merged_data.db')
+        db = sqlite3.connect('db/merged_data.db')
         cursor = db.cursor()
 
         cursor.execute('SELECT cena_zamkniecia FROM merged_data')
@@ -178,7 +188,7 @@ def histogram_zmian_cen():
 
 def zmiennosc_cen_okres(dni, start_date, end_date):
     try:
-        db = sqlite3.connect('merged_data.db')
+        db = sqlite3.connect('db/merged_data.db')
         cursor = db.cursor()
 
 
@@ -216,4 +226,37 @@ def zmiennosc_cen_okres(dni, start_date, end_date):
     except Exception as e:
         return str(e)
 
+
+def generuj_wykres_sma(okres=20):
+
+    conn = sqlite3.connect("db/merged_data.db")
+    df = pd.read_sql_query("SELECT dane, cena_zamkniecia FROM merged_data ORDER BY dane", conn)
+    conn.close()
+
+
+    df['dane'] = pd.to_datetime(df['dane'])
+    df['SMA'] = df['cena_zamkniecia'].rolling(window=okres).mean()
+
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(df['dane'], df['cena_zamkniecia'], label='Cena zamknięcia', color='blue')
+    plt.plot(df['dane'], df['SMA'], label=f'{okres}-dniowa SMA', color='orange')
+    plt.title(f'Wykres ceny zamknięcia i SMA ({okres} dni)')
+    plt.xlabel('Data')
+    plt.ylabel('Cena')
+    plt.legend()
+    plt.grid(True)
+
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    image_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    buf.close()
+    plt.close()
+
+    print("DEBUG: Tworzę wykres SMA")
+    print("Długość zakodowanego obrazu:", len(image_base64))
+
+    return image_base64
 

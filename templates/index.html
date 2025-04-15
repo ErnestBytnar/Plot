@@ -101,51 +101,81 @@
     </div>
 
     <script>
-        // Funkcja do obliczania zmian cen
-        document.getElementById('calculate-btn').addEventListener('click', async () => {
-            const daysInput = document.getElementById('days');
-            const errorMessage = document.getElementById('error-message');
-            const resultsTable = document.getElementById('results-table');
-            const resultsBody = resultsTable.querySelector('tbody');
+       document.getElementById('calculate-btn').addEventListener('click', async () => {
+    const daysInput = document.getElementById('days');
+    const errorMessage = document.getElementById('error-message');
+    const resultsTable = document.getElementById('results-table');
+    const resultsBody = resultsTable.querySelector('tbody');
 
-            errorMessage.textContent = '';
-            resultsTable.style.display = 'none';
-            resultsBody.innerHTML = '';
+    // Wyczyść poprzednie dane i komunikaty o błędach
+    errorMessage.textContent = '';
+    resultsTable.style.display = 'none';
+    resultsBody.innerHTML = '';
 
-            const days = parseInt(daysInput.value);
-            if (!days || days < 1) {
-                errorMessage.textContent = 'Proszę podać prawidłową, dodatnią liczbę dni.';
-                return;
-            }
+    const days = parseInt(daysInput.value);
 
-            try {
-                const response = await fetch('/calculate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ days })
-                });
+    // Sprawdź, czy wprowadzono prawidłową liczbę dni
+    if (!days || days < 1) {
+        errorMessage.textContent = 'Proszę podać prawidłową, dodatnią liczbę dni.';
+        return;
+    }
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    errorMessage.textContent = errorData.error || 'Wystąpił błąd podczas obliczeń.';
-                    return;
-                }
-
-                const data = await response.json();
-                const results = data.data;
-
-                results.forEach(result => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `<td>${result.rate}</td><td>${result.avg_change.toFixed(3)}</td>`;
-                    resultsBody.appendChild(row);
-                });
-
-                resultsTable.style.display = 'table';
-            } catch (error) {
-                errorMessage.textContent = 'Nie można połączyć się z serwerem. Spróbuj ponownie później.';
-                console.error('Błąd:', error);
-            }
+    try {
+        // Wyślij zapytanie do serwera
+        const response = await fetch('http://127.0.0.1:5000/calculate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ days })
         });
+
+        // Sprawdź, czy odpowiedź jest poprawna
+        if (!response.ok) {
+            const errorData = await response.json();
+            errorMessage.textContent = errorData.error || 'Wystąpił błąd podczas obliczeń.';
+            return;
+        }
+
+        // Przetwórz odpowiedź z serwera
+        const data = await response.json();
+
+        // Logowanie odpowiedzi w konsoli do debugowania
+        console.log('Odpowiedź z serwera:', data);  // Logowanie całej odpowiedzi serwera
+
+        // Sprawdź, czy 'data' zawiera dane, które oczekujemy
+        if (!data || !Array.isArray(data.data)) {
+            errorMessage.textContent = 'Brak danych w odpowiedzi serwera.';
+            console.log('Brak danych w odpowiedzi:', data);  // Logowanie, co jest w odpowiedzi
+            return;
+        }
+
+        const results = data.data;
+
+        // Sprawdź, czy wyniki są poprawnie zainicjalizowane
+        if (results.length === 0) {
+            errorMessage.textContent = 'Brak wyników do wyświetlenia.';
+            console.log('Brak wyników w danych:', results);
+            return;
+        }
+
+        // Dodaj wyniki do tabeli
+        results.forEach(result => {
+            const row = document.createElement('tr');
+           row.innerHTML = `
+    <td>${result.roznica_stopy}</td>
+    <td>${result.srednia_zmiana_ceny.toFixed(3)}</td>
+`;
+
+            resultsBody.appendChild(row);
+        });
+
+        // Pokaż tabelę z wynikami
+        resultsTable.style.display = 'table';
+    } catch (error) {
+        // Obsłuż błąd połączenia z serwerem
+        errorMessage.textContent = 'Nie można połączyć się z serwerem. Spróbuj ponownie później.';
+        console.error('Błąd:', error);
+    }
+});
 
         // Funkcja do wyświetlania wykresu korelacji
         document.getElementById('plot-btn').addEventListener('click', async () => {
@@ -170,7 +200,10 @@
     </script>
 <div class="container">
     <button id="plot-close-btn">Pokaż Wykres Zmiany Ceny Zamknięcia</button>
+
     <button id="plot-histogram-btn">Pokaż Histogram Zmian Cen</button>
+   <!-- <button id="plot-sma-btn">Pokaż Wykres SMA</button> -->
+
     <div id="new-plot-container" style="margin-top: 20px;">
         <img id="new-plot-image" style="max-width: 100%; display: none;" alt="Wykres">
     </div>
@@ -220,6 +253,11 @@
     <div id="volatility-range-plot-container" style="margin-top: 20px;">
         <img id="volatility-range-plot-image" style="max-width: 100%; display: none;" alt="Wykres Zmienności">
     </div>
+
+    <div id="sma-plot-container" style="margin-top: 20px;">
+    <img id="sma-plot-image" style="max-width: 100%; display: none;" alt="Wykres SMA">
+</div>
+
 </div>
 
 <script>
@@ -253,6 +291,33 @@
             }
 
             const data = await response.json();
+            if (data.error) {
+                alert(data.error);
+            } else {
+                plotImage.src = `data:image/png;base64,${data.image}`;
+                plotImage.style.display = 'block';
+            }
+        } catch (error) {
+            alert('Wystąpił błąd: ' + error.message);
+            console.error(error);
+        }
+    });
+</script>
+
+<script>
+    document.getElementById('plot-sma-btn').addEventListener('click', async () => {
+        const plotImage = document.getElementById('sma-plot-image');
+        plotImage.style.display = 'none';
+
+        try {
+            const response = await fetch('/plot_sma', { method: 'GET' });
+
+            if (!response.ok) {
+                throw new Error('Nie udało się załadować wykresu SMA.');
+            }
+
+            const data = await response.json();
+
             if (data.error) {
                 alert(data.error);
             } else {
