@@ -37,7 +37,7 @@ Aby uruchomić aplikację, wymagane są następujące komponenty:
 1. Uruchom serwer Flask:
 
     ```bash
-    python app.py
+    python main.py
     ```
 
 2. Aplikacja będzie działać pod adresem: [http://127.0.0.1:5000](http://127.0.0.1:5000).
