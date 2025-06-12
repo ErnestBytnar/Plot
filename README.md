@@ -2,6 +2,13 @@
 
 Aplikacja umożliwia obliczanie średnich zmian cen na podstawie procentowych zmian stóp procentowych (DFF) oraz generowanie wykresów, w tym wykresów SMA (Simple Moving Average). Użytkownicy mogą obliczyć średnią zmianę ceny na podstawie danych oraz generować wykresy takich danych jak korelacja, zmiana ceny zamknięcia czy zmienność cen w czasie.
 
+![calcualte change](https://github.com/user-attachments/assets/3bf58fe1-34a6-41dd-adc9-21376f11a0b2)
+![chart gallery](https://github.com/user-attachments/assets/70c1098e-c9bc-4e4d-922c-d2fb12d43f87)
+![overview](https://github.com/user-attachments/assets/aa0e477c-9f49-4ac1-96a9-6d609faa315a)
+![volatility](https://github.com/user-attachments/assets/66da9ac0-0edd-4975-bebf-3f644580b0de)
+![gallery](https://github.com/user-attachments/assets/13255723-fe5e-475f-a406-3d96f1c808ba)
+
+
 ## Wymagania
 
 Aby uruchomić aplikację, wymagane są następujące komponenty:
@@ -64,3 +71,7 @@ Aby uruchomić aplikację, wymagane są następujące komponenty:
   - `/plot_close_prices` – Wykres zmiany ceny zamknięcia.
   - `/plot_histogram` – Histogram zmian cen.
   - `/plot_volatility` – Wykres zmienności cen w określonym zakresie dat.
+ 
+
+
+
