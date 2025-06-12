@@ -3,16 +3,29 @@ import create_db
 import utils
 import plot
 
-app = Flask(__name__)
+from flask_cors import CORS
 
+app = Flask(__name__)
+CORS(app)
 @app.route('/')
 def home():
     return render_template('index.html')
 
 @app.route('/update', methods=['POST'])
 def update_db():
-    data = utils.fetch_data_csv("DFF.csv")
-    create_db.create_db(data)
+    print("Headers:", request.headers)
+    data = request.get_json()
+    if data is None:
+        print("No JSON received!")
+        return jsonify({'error': 'No JSON data received'}), 400
+    print("Received JSON:", data)
+    stock = data.get('stock')
+    if not stock:
+        return jsonify({'error': 'Missing "stock" field in JSON'}), 400
+
+    csv_data = utils.fetch_data_csv("db/DFF.csv")
+    create_db.create_db(csv_data)
+
     return jsonify({'message': 'Zaaktualizowano dane w bazie!'})
 
 @app.route('/calculate', methods=['POST'])
@@ -26,10 +39,23 @@ def calculate_changes():
     if not isinstance(days, int) or days <= 0:
         return jsonify({"error": "Liczba dni musi być dodatnią liczbą całkowitą."}), 400
 
-
     wyniki = plot.srednia_zmiana_ceny_przy_zmianie_DFF(days)
 
-    return jsonify({"message": f"Średnie zmiany cen dla {days} dni obliczone.", "data": wyniki})
+    if wyniki:
+        avg_change = round(sum(w['srednia_zmiana_ceny'] for w in wyniki) / len(wyniki), 3)
+        total_change = round(sum(w['srednia_zmiana_ceny'] for w in wyniki), 3)
+    else:
+        avg_change = 0.0
+        total_change = 0.0
+
+    return jsonify({
+        "message": f"Średnie zmiany cen dla {days} dni obliczone.",
+        "days": days,
+        "average_change": avg_change,
+        "total_change": total_change,
+        "data": wyniki
+    })
+
 @app.route('/plot', methods=['GET'])
 def get_plot():
     try:

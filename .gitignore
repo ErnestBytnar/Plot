@@ -1,0 +1,81 @@
+# Node modules (frontend)
+node_modules/
+# Build output (Next.js or React)
+.next/
+build/
+dist/
+
+# Env files (zawierają tajne dane)
+.env
+.env.local
+.env.*.local
+
+# Logi
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# VSCode
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.sqlite3
+*.egg-info/
+*.eggs/
+*.env
+venv/
+env/
+ENV/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Flask instance folder (jeśli jest)
+instance/
+
+# PyCharm
+.idea/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# Coverage reports
+htmlcov/
+.coverage
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+*.pyo
+*.pyd
+
+# Database files (jeśli masz lokalną bazę)
+*.db
+*.sqlite3
+
+# Build output from any build tools (if you use any)
+dist/
+build/
+
+# Logs and temp files
+*.log
+tmp/
+temp/
+
+# Others
+*.swp
+*.swo
+
+# If you generate plot images or other media that shouldn't be in repo
+*.png
+*.jpg
+*.jpeg
+*.gif
+
